@@ -1,0 +1,59 @@
+// Tenant database schema for SaaS multi-tenant system
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/tenant-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  tenantId     String   @map("tenant_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  sales Sale[]
+
+  @@map("users")
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sales Sale[]
+
+  @@map("products")
+}
+
+model Sale {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  userId    String   @map("user_id")
+  quantity  Int
+  total     Decimal  @db.Decimal(10, 2)
+  synced    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("sales")
+}
